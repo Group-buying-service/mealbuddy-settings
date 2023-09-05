@@ -1,0 +1,37 @@
+version: '3'
+services:
+  nginx:
+    container_name: mealbuddy_nginx
+    build:
+      context: .
+      dockerfile: mealbuddy-front/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+  backend:
+    container_name: mealbuddy_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - DJANGO_SETTINGS_MODULE=group_buying_service.settings
+    command: >
+      bash -c "python manage.py migrate & gunicorn group_buying_service.wsgi:application --bind 0.0.0.0:8080 & daphne -b 0.0.0.0 -p 8000 group_buying_service.asgi:application"
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+  postgres:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  redis:
+    image: redis
+    container_name: redis
